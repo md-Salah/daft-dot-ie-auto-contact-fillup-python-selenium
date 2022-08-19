@@ -39,7 +39,7 @@ def read_contact_info(file_name, split_by=':'):
         
             contact_info[key] = value
         except:
-            break
+            pass
     
     return contact_info
 

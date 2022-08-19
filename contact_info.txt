@@ -1,0 +1,6 @@
+loginEmail = morganlarry291@gmail.com
+loginPassword = Waficityk.o16
+name = Nadiya Samiak
+email = samiaknadiya3@gmail.com
+message = I am interested in this property
+searchLocation = dublin

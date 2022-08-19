@@ -11,7 +11,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, StaleElementReferenceException, NoSuchElementException
 from selenium.common.exceptions import InvalidArgumentException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
@@ -59,7 +59,7 @@ class Scraper:
             # '--no-sandbox',                                               # with sandbox, one tab cannot watch another tab
             '--disable-popup-blocking',                                     # Otherwise new tab will not be opened
             '--no-first-run --no-service-autorun --password-store=basic',   # just some options passing in to skip annoying popups
-            # '--user-data-dir=c:\\temp\\profile',                            # Saving user profile
+            '--user-data-dir=c:\\temp\\profile',                            # Saving user profile
         ]
 
         # experimental_options = {
@@ -107,9 +107,8 @@ class Scraper:
         print('headless:    ', self.headless)
         
     # Add login functionality and load cookies if there are any with 'cookies_file_name'
-    def add_login_functionality(self, login_url, is_logged_in_selector, loop_count=10, login_function=None, exit_on_login_failure=True, cookies_file_name='cookies'):
+    def add_login_functionality(self, is_logged_in_selector, loop_count=10, login_function=None, exit_on_login_failure=True, cookies_file_name='cookies'):
         # Three step Login. 1:Using cookies, 2:By Selenium UI automation, 3:Manual login Then press any key
-        self.login_url = login_url
         self.is_logged_in_selector = is_logged_in_selector
         self.cookies_file_name = cookies_file_name + '.pkl'
         self.cookies_file_path = self.cookies_folder + self.cookies_file_name
@@ -205,7 +204,9 @@ class Scraper:
         self.driver.get(url)
 
     def exit_with_exception(self, reason):  # Utility function
-        raise Exception(reason)
+        print(f'Exception: {reason}')
+        if input('e: Exception | press any key to ignore...') == 'e':
+            raise Exception(reason)
 
     def find_element(self, css_selector='', xpath='', ref_element=None, loop_count=1, exit_on_missing_element='f', wait_element_time=None):
 
@@ -215,16 +216,17 @@ class Scraper:
 
         # Intialize the condition to wait
         if css_selector:
-            wait_until = EC.visibility_of_element_located((By.CSS_SELECTOR, css_selector))
+            wait_until = EC.presence_of_element_located((By.CSS_SELECTOR, css_selector))
         elif xpath:
-            wait_until = EC.visibility_of_element_located((By.XPATH, xpath))
+            wait_until = EC.presence_of_element_located((By.XPATH, xpath))
         else:
             self.exit_with_exception(reason='ERROR: CSS_SELECTOR | XPATH is required to find element')
 
+        ignored_exceptions=(NoSuchElementException, StaleElementReferenceException,)
         for _ in range(loop_count):
             try:
                 # Wait for element to load
-                element = WebDriverWait(driver, wait_element_time).until(wait_until)
+                element = WebDriverWait(driver, wait_element_time, ignored_exceptions=ignored_exceptions).until(wait_until)
                 return element
             except TimeoutException:
                 time.sleep(1)
@@ -271,14 +273,17 @@ class Scraper:
         elements = self.find_elements(css_selector=css_selector, loop_count=loop_count)
         return self.element_click(element=elements[index])
 
-    def select_dropdown(self, css_selector, val, text=False):
+    def select_dropdown(self, css_selector, index=0, val=None, text=None):
         element = self.find_element(css_selector)
         select = Select(element)
         if text:
             select.select_by_visible_text(val)
-        else:
+        elif val:
             val = str(val) if type(val) == int else val
             select.select_by_value(val)
+        else:
+            select.select_by_index(index)
+            
 
     def add_emoji(self, selector, text):
         JS_ADD_TEXT_TO_INPUT = """
@@ -310,15 +315,17 @@ class Scraper:
                 element.click()
             except ElementClickInterceptedException:
                 self.element_click_by_javaScript(element=element)
+            except StaleElementReferenceException:
+                self.exit_with_exception('Error: Element is not attached to the page document. Can not click the element')
             except Exception as e:
-                self.exit_with_exception(reason=f'Error: Can not click {element} with selector {css_selector or xpath}\n{e}')
+                self.exit_with_exception(reason=f'Error: Can not click element with selector {css_selector or xpath}\n{e}')
         elif exit_on_missing_element:
             self.exit_with_exception(f'No element to click with selector {css_selector or xpath}')
         
         return element
 
     # Wait random time before sending the keys to the element
-    def element_send_keys(self, text, css_selector='', xpath='', element=None,  clear_input=True, loop_count=1, exit_on_missing_element=True, delay=True):
+    def element_send_keys(self, text, css_selector='', xpath='', element=None,  clear_input=False, loop_count=1, exit_on_missing_element=True, delay=True):
 
         if css_selector or xpath:
             element = self.find_element(css_selector=css_selector, xpath=xpath, loop_count=loop_count)
@@ -327,7 +334,7 @@ class Scraper:
             if delay:
                 self.sleep()
 
-            self.element_click(element=element, delay=False)
+            # self.element_click(element=element, delay=False)
             if clear_input:
                 self.element_clear(element=element, delay=False)
             element.send_keys(text)
