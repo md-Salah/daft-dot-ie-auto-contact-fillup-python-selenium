@@ -59,25 +59,24 @@ class Scraper:
             # '--no-sandbox',                                               # with sandbox, one tab cannot watch another tab
             '--disable-popup-blocking',                                     # Otherwise new tab will not be opened
             '--no-first-run --no-service-autorun --password-store=basic',   # just some options passing in to skip annoying popups
-            '--user-data-dir=c:\\temp\\profile',                            # Saving user profile
+            # '--user-data-dir=c:\\temp\\profile',                            # Saving user profile
         ]
 
-        # experimental_options = {
-        #     'excludeSwitches': ['enable-automation', 'enable-logging'],
-        #     'prefs': {
-        #         'profile.default_content_setting_values.notifications': 2,
+        experimental_options = {
+            # 'excludeSwitches': ['enable-automation', 'enable-logging'],
+            'prefs': {
+                'profile.default_content_setting_values.notifications': 2,
 
-        #         
-        #         'credentials_enable_service': False,          # Disable the save password popups
-        #         'profile.password_manager_enabled': False
-        #     }
-        # }
+                'credentials_enable_service': False,          # Disable the save password popups
+                'profile.password_manager_enabled': False
+            }
+        }
 
         for argument in arguments:
             self.driver_options.add_argument(argument)
 
-        # for key, value in experimental_options.items():
-        # 	self.driver_options.add_experimental_option(key, value)
+        for key, value in experimental_options.items():
+        	self.driver_options.add_experimental_option(key, value)
 
         if headless:
             self.driver_options.add_argument('--headless')

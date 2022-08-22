@@ -49,38 +49,32 @@ def contact_property(href):
     emailBtn = d.find_element('button[aria-label="Email Agent"]', loop_count=3)
     if emailBtn:
         d.element_click(element=emailBtn)
-        d.sleep(3, 4)
+        d.sleep(10, 12)
         nameInput = d.find_element('#input-wrapper-name input')
-        d.sleep(1.5, 2)
+        d.element_click(element=nameInput, exit_on_missing_element=False)
+        time.sleep(2)
+        nameInput = d.find_element('#input-wrapper-name input')
         if nameInput and nameInput.get_attribute('value').strip() != contact_info['name']:
-            d.sleep(1, 1.2)
-            try:
-                d.element_send_keys(contact_info['name'], '#input-wrapper-name input')
-            except:
-                d.element_send_keys(contact_info['name'], '#input-wrapper-name input')
-            d.sleep(0.5, 1)
-            try:
-                d.element_send_keys(contact_info['email'], '#input-wrapper-email input')
-            except:
-                d.element_send_keys(contact_info['email'], '#input-wrapper-email input')
-            d.sleep(0.5, 1)
-            try:
-                d.element_send_keys(contact_info['message'], '#message')
-            except:
-                d.element_send_keys(contact_info['message'], '#message')
-                
+            d.sleep(1.5, 2)
+            d.element_send_keys(contact_info['name'], '#input-wrapper-name input', clear_input=True)
+
+            d.sleep(1.5, 2)
+            d.element_send_keys(contact_info['email'], '#input-wrapper-email input', clear_input=True)
+        
+            d.sleep(1.5, 2)
+            d.element_send_keys(contact_info['message'], '#message', clear_input=True)
+           
             d.element_click('input[displayname="Cash"]')
-            saveReply = d.find_element('#saveReply')
-            if saveReply:
-                d.element_click(element=saveReply)
+            d.element_click('#saveReply')
         
         d.sleep(1, 1.5)
-        d.element_click('button[data-testid="submit-button"]')
+        d.element_click('button[data-testid="submit-button"]', exit_on_missing_element=False)
         
         # Confirmation
-        confirm = d.find_element('div[data-testid="alert-message"]', exit_on_missing_element=False, wait_element_time=10)
-        if confirm and confirm.text == "Your enquiry has been sent":
+        if d.find_element(xpath='//div[contains(text(), "Your enquiry has been sent")]', exit_on_missing_element=False, wait_element_time=7):
             return True
+        elif d.find_element(xpath='//p[contains(text(),"Sorry, something went wrong")]', exit_on_missing_element=False):
+            input('\nTime to change the IP address and press ENTER...')
 
     return False
     
@@ -100,7 +94,7 @@ def main():
     count = 0
     while True:
         links = collect_property_links(page)
-        pagination_text = d.find_element('p[data-testid="pagination-results"]').text
+        pagination_text = d.find_element('p[data-testid="pagination-results"]', wait_element_time=5).text
         
         # visit links
         for href in links:
@@ -146,5 +140,4 @@ if __name__ == "__main__":
     execution_time(START_TIME, f'{count} contact filled')
 
     # Finally Close the browser
-    input('Press any key to exit the browser...')
     d.driver.quit()
